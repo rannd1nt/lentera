@@ -1,0 +1,19 @@
+# 1. Masuk ke folder project
+cd lentera-backend
+
+# 2. Install semua dependency Laravel (Wajib, karena folder vendor gak ikut di-push ke Github)
+composer install
+
+# 3. Copy file konfigurasi environment
+cp .env.example .env
+
+# (Suruh dia buka file .env, lalu pastikan settingan DB_DATABASE, FRONTEND_URL, dll sudah sama kayak punyamu)
+
+# 4. Generate App Key Laravel (Wajib biar Sanctum & enkripsi jalan)
+php artisan key:generate
+
+# 5. Bikin tabel dan masukin akun Admin + Settings default
+php artisan migrate:fresh --seed
+
+# 6. Nyalain server backend-nya!
+php artisan serve
