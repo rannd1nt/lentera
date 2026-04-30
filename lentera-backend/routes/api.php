@@ -25,6 +25,8 @@ Route::post('/borrow', [TransactionController::class, 'borrow']);
 Route::post('/return', [TransactionController::class, 'returnAsset']);
 Route::get('/assets/scan/{code}', [AssetController::class, 'scanByCode']); 
 Route::get('/assets/form-options', [AssetController::class, 'getFormOptions']); 
+Route::get('/assets', [AssetController::class, 'index']);
+Route::get('/categories', [CategoryController::class, 'index']);
 
 // --- RUTE TERPROTEKSI (HANYA ADMIN LOGIN) ---
 Route::middleware('auth:sanctum')->group(function () {
@@ -39,6 +41,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/assets/{id}/status', [AssetController::class, 'updateStatus']);
     
     // CRUD Master Data
-    Route::apiResource('assets', AssetController::class)->except(['show']); 
-    Route::apiResource('categories', CategoryController::class);
+    Route::apiResource('assets', AssetController::class)->except(['index','show']); 
+    Route::apiResource('categories', CategoryController::class)->except(['index', 'show']);
 });
