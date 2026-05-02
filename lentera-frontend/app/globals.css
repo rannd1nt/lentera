@@ -1,26 +1,184 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+:root, [data-theme="dark-mode"] {
+  --bg: #0a0a0a;
+  --fg: #ededed;
+  --subtle: #666666;
+  --surface: #171717;
+  --overlay: #262626;
+  --primary: #ffffff;
+  --secondary: #999999;
+  --accent: #ffffff;
+  --success: #10b981;
+  --error: #ef4444;
+  --border-radius: 10px;
+  --blur: 12px;
+  --bg-gradient-start: #0a0a0a;
+  --bg-gradient-end: #171717;
+
+  /* Legacy mappings so we don't break existing components */
+  --background: var(--bg);
+  --foreground: var(--fg);
+  --card: var(--surface);
+  --card-border: var(--overlay);
+  --accent-primary: var(--primary);
+  --accent-secondary: var(--secondary);
+  --accent-glow: rgba(255, 255, 255, 0.1);
+  --warning: #F59E0B;
+  --danger: var(--error);
+  --info: #3B82F6;
+  --skeleton: var(--overlay);
+}
+
+[data-theme="light-mode"] {
+  --bg: #ffffff;
+  --fg: #171717;
+  --subtle: #a1a1a1;
+  --surface: #f5f5f5;
+  --overlay: #e5e5e5;
+  --primary: #000000;
+  --secondary: #404040;
+  --accent: #000000;
+  --success: #10b981;
+  --error: #ef4444;
+  --border-radius: 10px;
+  --blur: 12px;
+  --bg-gradient-start: #ffffff;
+  --bg-gradient-end: #f5f5f5;
+
+  /* Legacy mappings so we don't break existing components */
+  --background: var(--bg);
+  --foreground: var(--fg);
+  --card: var(--surface);
+  --card-border: var(--overlay);
+  --accent-primary: var(--primary);
+  --accent-secondary: var(--secondary);
+  --accent-glow: rgba(0, 0, 0, 0.1);
+  --warning: #D97706;
+  --danger: var(--error);
+  --info: #2563EB;
+  --skeleton: var(--overlay);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-secondary: var(--accent-secondary);
+  --color-accent-glow: var(--accent-glow);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(56, 189, 248, 0.3) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.3);
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.5);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+}
+
+@keyframes lentera-fade-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes lentera-slide-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes lentera-glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px var(--accent-glow); }
+  50% { box-shadow: 0 0 48px var(--accent-glow), 0 0 48px var(--accent-glow); }
+}
+
+@keyframes lentera-border-glow {
+  0%, 100% { border-color: var(--card-border); }
+  50% { border-color: var(--accent); }
+}
+
+@keyframes lentera-gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes lentera-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-lentera-fade-in {
+  animation: lentera-fade-in 0.4s ease-out;
+}
+
+.animate-lentera-slide-up {
+  animation: lentera-slide-up 0.5s ease-out;
+}
+
+.animate-lentera-glow-pulse {
+  animation: lentera-glow-pulse 3s ease-in-out infinite;
+}
+
+.animate-lentera-border-glow {
+  animation: lentera-border-glow 3s ease-in-out infinite;
+}
+
+.animate-lentera-gradient-shift {
+  background-size: 200% 200%;
+  animation: lentera-gradient-shift 4s ease infinite;
+}
+
+.animate-lentera-float {
+  animation: lentera-float 3s ease-in-out infinite;
+}
+
+@keyframes lentera-skeleton {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-lentera-skeleton {
+  background: linear-gradient(90deg, var(--skeleton) 25%, rgba(71, 85, 105, 0.1) 50%, var(--skeleton) 75%);
+  background-size: 200% 100%;
+  animation: lentera-skeleton 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+@media print {
+  body { background: white !important; color: black !important; }
+  .print-hidden { display: none !important; }
+  .print-p-0 { padding: 0 !important; }
+  .print-m-0 { margin: 0 !important; }
+  .print-grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  .print-gap-2 { gap: 0.5rem !important; }
+  .print-border { border-width: 1px !important; border-style: solid !important; }
+  .print-border-gray-300 { border-color: #D1D5DB !important; }
 }

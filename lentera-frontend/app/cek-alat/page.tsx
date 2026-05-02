@@ -3,25 +3,26 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import Card from '@/components/ui/Card';
+import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
 
 function CekAlatContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const urlCode = searchParams.get('code');
 
-  // State untuk Fitur Search (KTP Alat)
   const [inputCode, setInputCode] = useState('');
   const [scanData, setScanData] = useState<any>(null);
   const [scanLoading, setScanLoading] = useState(false);
   const [scanError, setScanError] = useState('');
 
-  // State untuk Fitur Tabel (Katalog Publik)
   const [assets, setAssets] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCat, setSelectedCat] = useState<number | null>(null);
   const [tableLoading, setTableLoading] = useState(true);
 
-  // Auto-fetch data scan kalau ada parameter ?code= di URL
   useEffect(() => {
     if (urlCode) {
       setInputCode(urlCode);
@@ -29,7 +30,6 @@ function CekAlatContent() {
     }
   }, [urlCode]);
 
-  // Fetch seluruh katalog pas halaman pertama kali dibuka
   useEffect(() => {
     const fetchCatalog = async () => {
       try {
@@ -45,7 +45,6 @@ function CekAlatContent() {
     fetchCatalog();
   }, []);
 
-  // Fungsi khusus nyari data 1 alat berdasarkan kode
   const fetchScanData = async (codeToSearch: string) => {
     if (!codeToSearch) return;
     setScanLoading(true);
@@ -65,143 +64,161 @@ function CekAlatContent() {
 
   const handleManualSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    router.push(`/cek-alat?code=${inputCode}`); 
+    router.push(`/cek-alat?code=${inputCode}`);
     fetchScanData(inputCode);
   };
 
+  const statusBadge = (status: string) => {
+    switch (status) {
+      case 'available': return <Badge variant="success">Tersedia</Badge>;
+      case 'borrowed': return <Badge variant="warning">Dipinjam</Badge>;
+      case 'maintenance': return <Badge variant="danger">Maintenance</Badge>;
+      default: return <Badge>{status}</Badge>;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800">
-      
-      {/* 🌟 BAGIAN 1: SEARCH & INFO KTP ALAT 🌟 */}
-      <div className="bg-slate-900 text-white pt-20 pb-12 px-6 flex flex-col items-center shadow-md">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-extrabold text-cyan-400 tracking-wider">LENTERA PUBLIC</h1>
-          <p className="text-slate-400 mt-2">Cari Kode / Scan QR untuk mengecek detail alat</p>
-        </div>
+    <div className="min-h-screen flex flex-col">
+      {/* HEADER + SCAN RESULT */}
+      <div className="relative overflow-hidden shrink-0">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[var(--accent-secondary)]/15 via-transparent to-transparent" />
 
-        <form onSubmit={handleManualSearch} className="w-full max-w-lg flex gap-2">
-          <input 
-            type="text" 
-            value={inputCode}
-            onChange={(e) => setInputCode(e.target.value.toUpperCase())}
-            placeholder="Masukkan Kode Alat (Cth: INV-01)" 
-            className="flex-1 p-4 rounded-xl text-black font-bold outline-none uppercase"
-          />
-          <button type="submit" className="bg-cyan-600 hover:bg-cyan-700 px-6 py-4 rounded-xl font-bold transition shadow-lg">
-            Cari
-          </button>
-        </form>
+        <div className="relative z-10 pt-12 pb-8 px-6 flex flex-col items-center">
 
-        {/* LOADING & ERROR SEARCH */}
-        {scanLoading && <div className="mt-8 animate-pulse text-cyan-400 font-bold">Mencari Data... ⏳</div>}
-        {scanError && (
-          <div className="mt-8 w-full max-w-lg p-4 bg-red-500/20 border border-red-500 rounded-xl text-center">
-            <h3 className="font-bold text-red-400">{scanError}</h3>
-          </div>
-        )}
+          <form onSubmit={handleManualSearch} className="w-full max-w-md flex gap-2 animate-lentera-slide-up">
+            <Input
+              type="text"
+              value={inputCode}
+              onChange={(e) => setInputCode(e.target.value.toUpperCase())}
+              placeholder="Masukkan Kode Alat (Cth: INV-01)"
+              variant="mono"
+              className="flex-1"
+            />
+            <Button type="submit" size="md">Cari</Button>
+          </form>
 
-        {/* HASIL DATA SEARCH */}
-        {scanData && !scanLoading && (
-          <div className="mt-8 w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 text-slate-800">
-            <div className="p-6 bg-slate-100 text-center relative border-b">
-              <div className="text-xs font-bold text-cyan-700 tracking-widest mb-1 uppercase">{scanData.category}</div>
-              <h2 className="text-2xl font-black mb-2">{scanData.name}</h2>
-              <div className="inline-block bg-slate-800 text-white px-4 py-1 rounded-full font-mono text-sm tracking-widest">{scanData.code}</div>
+          {scanLoading && (
+            <div className="mt-6 flex items-center gap-3 text-[var(--accent-secondary)] animate-lentera-fade-in">
+              <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              <span className="font-semibold text-sm">Mencari Data...</span>
             </div>
-            <div className="p-6">
-              <div className="flex flex-col items-center">
-                <span className={`px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wider ${
-                  scanData.status === 'available' ? 'bg-emerald-100 text-emerald-700' : 
-                  scanData.status === 'borrowed' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
-                }`}>
-                  Status: {scanData.status}
-                </span>
-              </div>
-              {scanData.status === 'borrowed' && scanData.borrower && (
-                <div className="mt-6 p-4 bg-amber-50 rounded-xl border border-amber-200 text-sm">
-                  <h3 className="font-bold text-amber-900 mb-3 border-b border-amber-200 pb-2">📦 Sedang Dipinjam Oleh:</h3>
-                  <div className="flex justify-between mb-1"><span className="opacity-70">Nama</span><span className="font-bold">{scanData.borrower.name}</span></div>
-                  <div className="flex justify-between mb-1"><span className="opacity-70">Kelas</span><span className="font-bold">{scanData.borrower.class}</span></div>
-                  <div className="flex justify-between mb-1"><span className="opacity-70">Matkul</span><span className="font-bold">{scanData.borrower.subject}</span></div>
-                  <div className="flex justify-between mt-3 pt-2 border-t border-amber-200"><span className="opacity-70 text-xs">Sejak</span><span className="font-bold text-xs">{scanData.borrower.borrowed_at}</span></div>
+          )}
+
+          {scanError && (
+            <div className="mt-6 w-full max-w-md p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-center animate-lentera-fade-in">
+              <h3 className="font-semibold text-red-400 text-sm">{scanError}</h3>
+            </div>
+          )}
+
+          {scanData && !scanLoading && (
+            <Card className="mt-6 w-full max-w-md overflow-hidden animate-lentera-slide-up">
+              <div className="p-5 bg-slate-800/50 border-b border-[var(--card-border)]">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-bold text-[var(--accent-secondary)] tracking-widest uppercase truncate">{scanData.category}</div>
+                    <h2 className="text-lg font-black mt-1 truncate">{scanData.name}</h2>
+                  </div>
+                  <span className="inline-block font-mono text-xs tracking-widest px-3 py-1 rounded-full bg-slate-700/80 text-slate-300 shrink-0">{scanData.code}</span>
                 </div>
-              )}
-            </div>
-          </div>
-        )}
+              </div>
+              <div className="p-5">
+                <div className="flex justify-center mb-4">{statusBadge(scanData.status)}</div>
+                {scanData.status === 'borrowed' && scanData.borrower && (
+                  <div className="p-4 bg-amber-500/5 rounded-xl border border-amber-500/20 text-sm">
+                    <h3 className="font-bold text-amber-400 mb-3 border-b border-amber-500/20 pb-2">Sedang Dipinjam Oleh:</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between"><span className="text-slate-500">Nama</span><span className="font-semibold">{scanData.borrower.name}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-500">Kelas</span><span className="font-semibold">{scanData.borrower.class}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-500">Matkul</span><span className="font-semibold">{scanData.borrower.subject}</span></div>
+                      <div className="flex justify-between pt-2 border-t border-amber-500/20 mt-2"><span className="text-slate-500 text-xs">Sejak</span><span className="font-semibold text-xs font-mono">{scanData.borrower.borrowed_at}</span></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+        </div>
       </div>
 
-      {/* 🌟 BAGIAN 2: KATALOG ALAT (TABEL PUBLIK) 🌟 */}
-      <div className="p-8 max-w-6xl mx-auto mt-4">
-        <h2 className="text-2xl font-bold mb-6 text-slate-800">Katalog Alat Laboratorium</h2>
-        
-        {/* PILE KATEGORI (Filter) */}
-        <div className="flex items-center gap-3 mb-6 overflow-x-auto pb-2">
-          <button 
+      {/* KATALOG */}
+      <div className="flex-1 px-6 pb-8 max-w-6xl w-full mx-auto">
+        <h2 className="text-xl font-bold mb-4 text-[var(--foreground)]">Katalog Alat Laboratorium</h2>
+
+        <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
+          <Button
+            variant={selectedCat === null ? "primary" : "ghost"}
+            size="sm"
             onClick={() => setSelectedCat(null)}
-            className={`px-5 py-2 rounded-full font-bold border text-sm transition ${selectedCat === null ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
+            className="whitespace-nowrap"
           >
             Semua Aset
-          </button>
+          </Button>
           {categories.map(cat => (
-            <button 
-              key={cat.id} 
+            <Button
+              key={cat.id}
+              variant={selectedCat === cat.id ? "primary" : "ghost"}
+              size="sm"
               onClick={() => setSelectedCat(cat.id)}
-              className={`px-5 py-2 rounded-full font-bold border text-sm whitespace-nowrap transition ${selectedCat === cat.id ? 'bg-cyan-600 text-white border-cyan-600' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
+              className="whitespace-nowrap"
             >
               {cat.name} <span className="ml-1 opacity-70">({cat.assets_count})</span>
-            </button>
+            </Button>
           ))}
         </div>
 
-        {/* TABEL DATA */}
         {tableLoading ? (
-          <div className="p-10 text-center font-bold text-slate-500 bg-white border rounded-2xl">Memuat Katalog... ⏳</div>
+          <Card className="p-10 text-center animate-lentera-fade-in">
+            <div className="inline-block w-8 h-8 border-4 border-[var(--accent-primary)] border-t-transparent rounded-full animate-spin mb-3" />
+            <p className="text-slate-400 font-semibold">Memuat Katalog...</p>
+          </Card>
         ) : (
-          <div className="bg-white border rounded-2xl overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
+          <Card className="overflow-hidden">
+            <div className="max-h-[750px] overflow-y-auto overflow-x-auto">
               <table className="w-full text-left border-collapse">
-                <thead className="bg-slate-100 border-b text-sm text-slate-600">
+                <thead className="border-b border-[var(--card-border)] text-sm text-slate-400 sticky top-0 bg-[var(--card)] z-10">
                   <tr>
-                    <th className="p-4">KODE ALAT</th>
-                    <th className="p-4">MERK / NAMA ALAT</th>
-                    <th className="p-4">KATEGORI</th>
-                    <th className="p-4 text-center">STATUS</th>
+                    <th className="p-4 font-semibold">KODE ALAT</th>
+                    <th className="p-4 font-semibold">MERK / NAMA ALAT</th>
+                    <th className="p-4 font-semibold">KATEGORI</th>
+                    <th className="p-4 text-center font-semibold">STATUS</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody className="divide-y divide-[var(--card-border)]">
                   {assets.filter(a => selectedCat ? a.category_id === selectedCat : true).length === 0 && (
                     <tr><td colSpan={4} className="p-8 text-center text-slate-500 italic">Tidak ada alat di kategori ini.</td></tr>
                   )}
                   {assets.filter(a => selectedCat ? a.category_id === selectedCat : true).map(asset => (
-                    <tr key={asset.id} className="hover:bg-slate-50 transition cursor-pointer" onClick={() => { setInputCode(asset.code); fetchScanData(asset.code); window.scrollTo(0, 0); }}>
-                      <td className="p-4 font-mono font-bold text-slate-700">{asset.code}</td>
-                      <td className="p-4 font-semibold text-slate-800">{asset.name}</td>
-                      <td className="p-4 text-sm text-slate-500">{asset.category?.name}</td>
-                      <td className="p-4 text-center">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase border ${
-                          asset.status === 'available' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
-                          asset.status === 'borrowed' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-red-50 text-red-700 border-red-200'
-                        }`}>
-                          {asset.status}
-                        </span>
-                      </td>
+                    <tr
+                      key={asset.id}
+                      className="hover:bg-slate-800/30 transition cursor-pointer"
+                      onClick={() => { setInputCode(asset.code); fetchScanData(asset.code); window.scrollTo(0, 0); }}
+                    >
+                      <td className="p-4 font-mono font-semibold text-[var(--accent-secondary)]">{asset.code}</td>
+                      <td className="p-4 font-semibold">{asset.name}</td>
+                      <td className="p-4 text-sm text-slate-400">{asset.category?.name}</td>
+                      <td className="p-4 text-center">{statusBadge(asset.status)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
         )}
       </div>
-
     </div>
   );
 }
 
 export default function CekAlatGateway() {
   return (
-    <Suspense fallback={<div className="p-10 text-center font-bold text-slate-800 min-h-screen bg-slate-100 pt-20">Memuat Sistem... ⏳</div>}>
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block w-12 h-12 border-4 border-[var(--accent-primary)] border-t-transparent rounded-full animate-spin mb-4" />
+          <p className="text-slate-400 font-semibold">Memuat Sistem...</p>
+        </div>
+      </div>
+    }>
       <CekAlatContent />
     </Suspense>
   );
