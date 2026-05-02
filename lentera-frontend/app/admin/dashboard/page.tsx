@@ -28,6 +28,14 @@ export default function AdminDashboard() {
   const [showSudoModal, setShowSudoModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [sudoPassword, setSudoPassword] = useState('');
+  const [sudoExpires, setSudoExpires] = useState<number | null>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sudoExpires');
+      const val = saved ? parseInt(saved, 10) : null;
+      return val && val > Date.now() ? val : null;
+    }
+    return null;
+  });
   const [pendingAction, setPendingAction] = useState<{type: string, id?: number, payload?: any} | null>(null);
 
   const [catModal, setCatModal] = useState<{isOpen: boolean, type: 'add'|'edit', data: any}>({isOpen: false, type: 'add', data: {name: ''}});
@@ -74,6 +82,9 @@ export default function AdminDashboard() {
       console.log("Logout dari server gagal, hapus token lokal.");
     } finally {
       localStorage.removeItem('token');
+      localStorage.removeItem('sudoExpires');
+      localStorage.removeItem('sudoToken');
+      setSudoHeader(null);
       toast.info("Berhasil logout. Sampai jumpa!");
       router.push('/');
     }
@@ -82,7 +93,13 @@ export default function AdminDashboard() {
   const handleVerifySudo = async () => {
     try {
       const res = await api.post('/admin/sudo', { password: sudoPassword });
-      setSudoHeader(res.data.sudo_token);
+      const sudoToken = res.data.sudo_token;
+      const expiresAt = Date.now() + 10 * 60 * 1000;
+      
+      setSudoHeader(sudoToken);
+      setSudoExpires(expiresAt);
+      localStorage.setItem('sudoExpires', expiresAt.toString());
+      localStorage.setItem('sudoToken', sudoToken);
 
       if (pendingAction?.type === 'DELETE_ASSET') await api.delete(`/assets/${pendingAction.id}`);
       else if (pendingAction?.type === 'UPDATE_STATUS') await api.put(`/assets/${pendingAction.id}/status`, { status: pendingAction.payload });
@@ -91,10 +108,9 @@ export default function AdminDashboard() {
       else if (pendingAction?.type === 'EDIT_CATEGORY') await api.put(`/categories/${pendingAction.id}`, pendingAction.payload);
       else if (pendingAction?.type === 'UPDATE_SETTINGS') await api.put('/admin/settings', pendingAction.payload);
 
-      toast.success("Aksi berhasil dieksekusi!");
+      toast.success(res.data.message || "Aksi berhasil dieksekusi!");
       setSudoPassword('');
       setShowSudoModal(false);
-      setSudoHeader(null);
       fetchData();
       if (pendingAction?.type === 'DELETE_CATEGORY' && selectedCat === pendingAction.id) setSelectedCat(null);
     } catch (err: any) {
@@ -113,8 +129,44 @@ export default function AdminDashboard() {
       toast.warning("Alat sedang dipinjam mahasiswa, tidak bisa diubah.");
       return;
     }
+
+    if (sudoExpires && sudoExpires > Date.now()) {
+      const savedToken = localStorage.getItem('sudoToken');
+      if (savedToken) {
+        setSudoHeader(savedToken);
+        executeAction(type, id, payload).finally(() => {
+          setSudoHeader(null);
+          localStorage.removeItem('sudoToken');
+        });
+        return;
+      }
+    }
+
     setPendingAction({ type, id, payload });
     setShowSudoModal(true);
+  };
+
+  const executeAction = async (type: string, id?: number, payload?: any) => {
+    try {
+      if (type === 'DELETE_ASSET') await api.delete(`/assets/${id}`);
+      else if (type === 'UPDATE_STATUS') await api.put(`/assets/${id}/status`, { status: payload });
+      else if (type === 'EDIT_ASSET') await api.put(`/assets/${id}`, payload);
+      else if (type === 'DELETE_CATEGORY') await api.delete(`/categories/${id}`);
+      else if (type === 'EDIT_CATEGORY') await api.put(`/categories/${id}`, payload);
+      else if (type === 'UPDATE_SETTINGS') await api.put('/admin/settings', payload);
+
+      toast.success("Aksi berhasil dieksekusi!");
+      fetchData();
+      if (type === 'DELETE_CATEGORY' && selectedCat === id) setSelectedCat(null);
+    } catch (err: any) {
+      if (err.response?.status === 401) {
+        toast.error("Sesi habis, silakan login ulang.");
+        localStorage.removeItem('token');
+        router.push('/');
+      } else {
+        toast.error(err.response?.data?.message || "Gagal mengeksekusi aksi.");
+      }
+    }
   };
 
   const saveCategory = async () => {
@@ -513,7 +565,9 @@ export default function AdminDashboard() {
               <div ref={qrRef} className="inline-block bg-white p-6 rounded-2xl mb-4">
                 <QRCodeCanvas value={getAssetQRUrl(qrModal.asset.code)} size={280} level={"H"} includeMargin={true} />
               </div>
-              <p className="text-sm text-slate-400 mb-2 font-mono">{getAssetQRUrl(qrModal.asset.code)}</p>
+              <a href={getAssetQRUrl(qrModal.asset.code)} target="_blank" rel="noopener noreferrer" className="text-sm text-slate-400 hover:text-[var(--accent-secondary)] hover:underline mb-2 font-mono block transition-colors">
+                {getAssetQRUrl(qrModal.asset.code)}
+              </a>
               <p className="text-xs text-slate-500 mb-6">Scan QR ini untuk langsung membuka halaman detail alat <span className="font-mono text-[var(--accent-secondary)]">{qrModal.asset.code}</span></p>
               <Button variant="primary" size="lg" fullWidth onClick={() => downloadQR(qrModal.asset.code)}>
                 <span className="flex items-center justify-center gap-2"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>Download QR sebagai JPG</span>
