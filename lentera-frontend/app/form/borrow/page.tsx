@@ -78,7 +78,7 @@ function BorrowFormContent() {
 
       await api.post('/borrow', payload);
       toast.success('Peminjaman berhasil! Data sudah masuk ke database.');
-      router.push('/admin/dashboard');
+      router.push(`/cek-alat?code=${encodeURIComponent(code)}`);
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Peminjaman gagal.');
     }
